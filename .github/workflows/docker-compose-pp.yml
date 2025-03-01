@@ -1,0 +1,127 @@
+name: docker-compose ci/cd pipeline
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - README.md
+
+env:
+  DOCKER_IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+  DOCKER_COMPOSE: docker-compose.yml
+  SSH_HOST: ${{ secrets.SSH_HOST }}
+  SSH_PORT: ${{ vars.SSH_PORT }}
+  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
+  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  EMAIL: ${{ secrets.EMAIL }}
+  DOMAIN: ${{ secrets.DOMAIN }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [18, 20, 22, 23]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{matrix.node-version}}
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{matrix.node-version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{matrix.node-version }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      #- name: Run tests
+      #  run: npm test
+
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_IMAGE_NAME }} .
+
+      - name: Save Docker images
+        run: |
+          docker save ${{ env.DOCKER_IMAGE_NAME }} -o ${{ env.DOCKER_IMAGE_NAME }}.tar
+
+      - name: Upload Docker images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-${{matrix.node-version }}-${{ env.DOCKER_IMAGE_NAME }}
+          path: ${{ env.DOCKER_IMAGE_NAME }}.tar
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: ubuntu-latest-23-${{ env.DOCKER_IMAGE_NAME }}
+          path: .
+
+      - name: Set up SSH private key
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_rsa
+          chmod 600 ~/.ssh/deploy_rsa
+
+      - name: Transfer Docker images to deploy server
+        run: |
+          scp -i ~/.ssh/deploy_rsa -P ${{ env.SSH_PORT }} -o StrictHostKeyChecking=no ${{ env.DOCKER_IMAGE_NAME }}.tar ${{ env.SSH_USERNAME }}@${{ env.SSH_HOST }}:/home/${{ env.SSH_USERNAME }}
+          scp -i ~/.ssh/deploy_rsa -P ${{ env.SSH_PORT }} -o StrictHostKeyChecking=no ${{ env.DOCKER_COMPOSE }} ${{ env.SSH_USERNAME }}@${{ env.SSH_HOST }}:/home/${{ env.SSH_USERNAME }}
+
+      - name: Deploy to Server using docker-compose
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ env.SSH_HOST }}
+          port: ${{ env.SSH_PORT }}
+          username: ${{ env.SSH_USERNAME }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          script: |
+            export EMAIL=${{ env.EMAIL }}
+            export DOMAIN=${{ env.DOMAIN }}
+
+            docker compose -f ${{ env.DOCKER_COMPOSE }} down
+            docker rmi ${{ env.DOCKER_IMAGE_NAME }} || true
+            docker load -i ${{ env.DOCKER_IMAGE_NAME }}.tar
+            docker network create traefik-public
+            docker compose -f ${{ env.DOCKER_COMPOSE }} up -d
+
+            echo "Waiting for container ${{ env.DOCKER_IMAGE_NAME }} to become healthy..."
+            end=$((SECONDS+60))
+            while [ $SECONDS -lt $end ]; do
+              HEALTH_STATUS=$(docker inspect --format='{{.State.Health.Status}}' ${{ env.DOCKER_IMAGE_NAME }})
+              if [ "$HEALTH_STATUS" == "healthy" ]; then
+                echo "Container ${{ env.DOCKER_IMAGE_NAME }} is healthy!"
+                exit 0
+              fi
+              sleep 5
+            done
+
+            echo "Timeout: Container ${{ env.DOCKER_IMAGE_NAME }} did not become healthy within 1 minute."
+            exit 1
+
+            docker ps -a

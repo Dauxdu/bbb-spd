@@ -1,0 +1,57 @@
+name: dockerfile build ci pipeline
+
+on:
+  push:
+    paths:
+      - Dockerfile
+  pull_request:
+    paths:
+      - Dockerfile
+
+env:
+  DOCKER_IMAGE_NAME: ${{ vars.DOCKER_IMAGE_NAME }}
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        node-version: [18, 20, 22, 23]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{matrix.node-version}}
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{matrix.node-version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{matrix.node-version }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      #- name: Run tests
+      #  run: npm test
+
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_IMAGE_NAME }} .
+
+      - name: Save Docker images
+        run: |
+          docker save ${{ env.DOCKER_IMAGE_NAME }} -o ${{ env.DOCKER_IMAGE_NAME }}.tar
+
+      - name: Upload Docker images
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-${{matrix.node-version }}-${{ env.DOCKER_IMAGE_NAME }}
+          path: ${{ env.DOCKER_IMAGE_NAME }}.tar

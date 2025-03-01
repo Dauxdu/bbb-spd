@@ -1,0 +1,135 @@
+:root {
+  --bg-color: #f4f4f4;
+  --text-color: #333;
+  --accent-color: #3498db;
+  --bg-container: #fff;
+  --border-color: #ddd;
+  --hover-color: #2980b9;
+  --success-bg: #d4edda;
+  --success-text: #155724;
+  --error-bg: #f8d7da;
+  --error-text: #721c24;
+  --footer-color: #777;
+  --footer-border: #eee;
+}
+
+body {
+  font-family: sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  background-color: var(--bg-container);
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  width: 80%;
+  max-width: 720px;
+  margin: 20px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+h1 {
+  color: var(--accent-color);
+  margin-bottom: 10px;
+}
+
+a {
+  color: var(--footer-color);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input[type="url"],
+input[type="number"],
+input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+button {
+  background-color: var(--accent-color);
+  color: #fff;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background-color: var(--hover-color);
+}
+
+.hidden {
+  display: none;
+}
+
+.message {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.message.success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+}
+
+.message.error {
+  background-color: var(--error-bg);
+  color: var(--error-text);
+}
+
+footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--footer-border);
+  color: var(--footer-color);
+}
+
+/* Темная тема */
+body.dark-theme {
+  --bg-color: #121212;
+  --text-color: #eee;
+  --accent-color: #2598f7;
+  --bg-container: #212121;
+  --border-color: #424242;
+  --hover-color: #42a5f5;
+  --footer-color: #bbb;
+  --footer-border: #333;
+}
