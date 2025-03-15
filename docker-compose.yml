@@ -1,4 +1,30 @@
 services:
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    hostname: docker-traefik
+    command:
+      - --api.insecure=false
+      - --api.dashboard=false
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=${EMAIL?Variable not set}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --log.level=ERROR
+      - --accesslog=true
+    ports:
+      - 80:80/tcp
+      - 443:443/tcp
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    networks:
+      - traefik-public
+    restart: always
+
   bbb-spd:
     build: .
     image: bbb-spd
@@ -13,49 +39,21 @@ services:
     networks:
       - traefik-public
     labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik-public"
-      - "traefik.constraint-label=traefik-public"
-      - "traefik.http.routers.bbb-spd-http.rule=Host(`${DOMAIN?Variable not set}`)"
-      - "traefik.http.routers.bbb-spd-http.entrypoints=http"
-      - "traefik.http.routers.bbb-spd-http.middlewares=https-redirect"
-      - "traefik.http.routers.bbb-spd-https.rule=Host(`${DOMAIN?Variable not set}`)"
-      - "traefik.http.routers.bbb-spd-https.entrypoints=https"
-      - "traefik.http.routers.bbb-spd-https.tls=true"
-      - "traefik.http.routers.bbb-spd-https.tls.certresolver=le"
-      - "traefik.http.services.bbb-spd.loadbalancer.server.port=3000"
+      - traefik.enable=true
+      - traefik.http.routers.bbb-spd-http.rule=Host(`${DOMAIN?Variable not set}`)
+      - traefik.http.routers.bbb-spd-http.entrypoints=http
+      - traefik.http.routers.bbb-spd-http.middlewares=https-redirect
+      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
+      - traefik.http.routers.bbb-spd-https.entrypoints=https
+      - traefik.http.routers.bbb-spd-https.rule=Host(`${DOMAIN?Variable not set}`)
+      - traefik.http.routers.bbb-spd-https.tls=true
+      - traefik.http.routers.bbb-spd-https.tls.certresolver=le
+      - traefik.http.services.bbb-spd.loadbalancer.server.port=3000
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
       interval: 10s
       timeout: 2s
       retries: 3
-    restart: always
-
-  traefik:
-    image: traefik:v3.3
-    container_name: traefik
-    hostname: docker-traefik
-    command:
-      - "--api.insecure=false"
-      - "--providers.docker=true"
-      - "--providers.docker.constraints=Label(`traefik.constraint-label`, `traefik-public`)"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.http.address=:80"
-      - "--entrypoints.https.address=:443"
-      - "--certificatesresolvers.le.acme.tlschallenge=true"
-      - "--certificatesresolvers.le.acme.email=${EMAIL?Variable not set}"
-      - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
-      - "--accesslog"
-      - "--log"
-      - "--api"
-    ports:
-      - 80:80/tcp
-      - 443:443/tcp
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "letsencrypt:/letsencrypt"
-    networks:
-      - traefik-public
     restart: always
 
 volumes:
