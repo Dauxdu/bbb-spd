@@ -12,8 +12,9 @@
 - Поддержка темной и светлой темы интерфейса.
 
 ## Использование
+
 1. Сохраните ссылку на презентацию BigBlueButton как показано в видеоинструкции.
-<img width="960" height="540" src="video.gif" alt="Видеоинструкция" />
+   <img width="960" height="540" src="video.gif" alt="Видеоинструкция" />
 
 2. Вставьте ссылку в поле "Ссылка на презентацию".
 3. Выберите, хотите ли вы скачать все слайды или указать начальный и конечный слайды.
@@ -39,7 +40,7 @@ git clone https://github.com/dauxdu/bbb_spd.git
 node service.js
 ```
 
-4. Перейдите в браузере по адресу: http://127.0.0.1:3000
+4. Перейдите в браузере по адресу: http://localhost:3000
 
 #### Запуск через Docker (Local)
 
@@ -62,7 +63,7 @@ docker build -t bbb-spd .
 docker run -d -p 3000:3000/tcp --name bbb-spd bbb-spd
 ```
 
-5. Перейдите в браузере по адресу: http://127.0.0.1:3000
+5. Перейдите в браузере по адресу: http://localhost:3000
 
 #### Запуск с помощью Docker Compose (Self-Hosting)
 
@@ -74,30 +75,21 @@ docker run -d -p 3000:3000/tcp --name bbb-spd bbb-spd
 git clone https://github.com/dauxdu/bbb_spd.git
 ```
 
-3. Экспортируйте переменные для `docker-compose.yml` файла или вручную измените их
+3. Создайте сеть
 
 ```bash
-export EMAIL=*email@mail.domain*
-export DOMAIN=*your.domain*
+docker network create traefik-private
 ```
 
-4. Создайте сеть
-
-```bash
-docker network create traefik-public
-```
-
-5. Перейдите в папку с проектом и запустите контейнеры:
+4. Перейдите в папку с проектом и запустите контейнеры:
 
 ```bash
  docker compose up -d
 ```
 
-6. Откройте веб-интерфейс в браузере
+5. Откройте веб-интерфейс в браузере
 
-HTTP: http://your.domain
-
-HTTPS: https://your.domain
+http://localhost
 
 ## Структура проекта
 
@@ -107,15 +99,13 @@ bbb-spd/
 │   ├── index.html
 │   ├── script.js
 │   ├── styles.css
-├── docker-compose.yml
+├── compose.yml
 ├── Dockerfile
-└── server.js
+├── package-lock.json
+├── package.json
+├── server.js
+└── stack.yml
 ```
-
-## TO DO:
-
-Интеграционные тесты
-Юнит-тесты
 
 ## Лицензия
 
