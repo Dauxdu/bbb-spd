@@ -1,0 +1,57 @@
+services:
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    hostname: docker-traefik
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - traefik-private
+    restart: unless-stopped
+    command:
+      - --api.insecure=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+      - --accesslog=true
+
+  bbb-spd:
+    build:
+      context: .
+      args:
+        PORT: "3000"
+    image: bbb-spd
+    container_name: bbb-spd
+    hostname: docker-bbb-spd
+    volumes:
+      - bbb-spd:/app
+    networks:
+      - traefik-private
+    restart: unless-stopped
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.bbb-spd.rule=Host(`localhost`)
+      - traefik.http.routers.bbb-spd.entrypoints=web
+      - traefik.http.services.bbb-spd.loadbalancer.server.port=3000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+
+volumes:
+  bbb-spd: {}
+
+networks:
+  traefik-private:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
