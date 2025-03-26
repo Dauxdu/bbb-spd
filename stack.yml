@@ -1,0 +1,93 @@
+services:
+  traefik:
+    image: traefik:v3
+    ports:
+      - target: 80
+        published: 80
+      - target: 443
+        published: 443
+    environment:
+      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_EMAIL_FILE: /run/secrets/EMAIL
+      CF_DNS_API_TOKEN_FILE: /run/secrets/CF_DNS_API_TOKEN
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - letsencrypt:/letsencrypt
+    secrets:
+      - EMAIL
+      - CF_DNS_API_TOKEN
+    networks:
+      - traefik-public
+    deploy:
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+    command:
+      # Global settings
+      - --global.checkNewVersion=false
+      - --global.sendAnonymousUsage=false
+      # API settings
+      - --api.dashboard=false
+      - --api.insecure=false
+      # Logging
+      - --accesslog=true
+      - --log.level=ERROR
+      # Providers
+      - --providers.swarm=true
+      - --providers.swarm.exposedByDefault=false
+      - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      # EntryPoints
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      # Middlewares
+      - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      # Certificates
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.le.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
+      - --certificatesresolvers.le.acme.dnschallenge.delaybeforecheck=5
+
+  bbb-spd:
+    image: bbb-spd
+    volumes:
+      - bbb-spd:/app
+    networks:
+      - traefik-public
+    deploy:
+      replicas: 5
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.bbb-spd.tls=true
+        - traefik.http.routers.bbb-spd.tls.certresolver=le
+        - traefik.http.routers.bbb-spd.rule=Host(`bbb.inchange.dev`)
+        - traefik.http.routers.bbb-spd.entrypoints=websecure
+        - traefik.http.services.bbb-spd.loadbalancer.server.port=3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 2s
+      retries: 3
+
+volumes:
+  bbb-spd:
+    driver: local
+  letsencrypt:
+    driver: local
+
+secrets:
+  EMAIL:
+    external: true
+  CF_DNS_API_TOKEN:
+    external: true
+
+networks:
+  traefik-public:
+    external: true
