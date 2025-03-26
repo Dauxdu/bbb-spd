@@ -1,0 +1,27 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "*.gif"
+      - "*.png"
+      - "*.jpg"
+      - "*.jpeg"
+      - "LICENSE"
+      - "docs/**"
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    with:
+      docker_image_name: ${{ vars.DOCKER_IMAGE_NAME }}
+
+  deploy:
+    needs: build
+    if: ${{ needs.build.result == 'success' }}
+    uses: ./.github/workflows/deploy.yml
+    with:
+      docker_image_name: ${{ vars.DOCKER_IMAGE_NAME }}
+    secrets: inherit
