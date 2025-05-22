@@ -9,15 +9,15 @@ on:
       - "**.js"
 
 jobs:
-  build:
+  prod-build:
     name: Build for Deploy
     if: ${{ github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/build.yml
 
-  deploy:
+  prod-deploy:
     name: Deploy to Host
-    needs: build
-    if: ${{ needs.build.result == 'success' }}
+    needs: prod-build
+    if: ${{ needs.prod-build.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
     secrets:
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}

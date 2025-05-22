@@ -12,6 +12,8 @@ on:
       CF_DNS_API_TOKEN:
         required: true
 
+  workflow_dispatch:
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -32,46 +34,24 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_rsa
           chmod 600 ~/.ssh/deploy_rsa
 
-      - name: Transfer Docker image
+          cat >> ~/.ssh/config <<END
+          Host deploy
+            HostName ${{ vars.SSH_HOST }}
+            Port ${{ vars.SSH_PORT }}
+            User ${{ secrets.SSH_USERNAME }}
+            IdentityFile ~/.ssh/deploy_rsa
+            StrictHostKeyChecking no
+          END
+
+      - name: Create remote Docker context
         run: |
-          scp -i ~/.ssh/deploy_rsa -P ${{ vars.SSH_PORT }} -o StrictHostKeyChecking=no ${{ vars.DOCKER_IMAGE }}.tar ${{ secrets.SSH_USERNAME }}@${{ vars.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/
-          scp -i ~/.ssh/deploy_rsa -P ${{ vars.SSH_PORT }} -o StrictHostKeyChecking=no docker/stack.yml ${{ secrets.SSH_USERNAME }}@${{ vars.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/
+          docker context create remote --docker "host=ssh://deploy"
+          docker context use remote
 
-      - name: Deploy application
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ vars.SSH_HOST }}
-          port: ${{ vars.SSH_PORT }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -euo pipefail
+      - name: Deploy compose
+        env:
+          DATA_PATH: /home/${{ secrets.SSH_USERNAME }}
+        run: |
+          docker load -i "${{ vars.DOCKER_IMAGE }}.tar" || {
 
-            echo "::group::Loading Docker image"
-            docker load -i "${{ vars.DOCKER_IMAGE }}.tar" || {
-              echo "::error::Failed to load Docker image"
-              exit 1
-            }
-            echo "::endgroup::"
-
-            echo "::group::Removing old stack"
-            if docker stack ls | grep -q prod; then
-              docker stack rm prod || {
-                echo "::warning::Failed to remove stack, trying service removal"
-                docker service ls --filter "label=com.docker.stack.namespace=prod" -q | xargs -r docker service rm
-              }
-              
-              # Wait for complete removal
-              timeout 30 bash -c "while docker service ls --filter 'label=com.docker.stack.namespace=prod' -q | grep -q .; do sleep 1; done" || \
-                echo "::warning::Some services still removing"
-            else
-              echo "Stack 'prod' not found"
-            fi
-            echo "::endgroup::"
-
-            echo "::group::Stack deployment"
-            docker stack deploy -c stack.yml prod || {
-              echo "::error::Deployment failed"
-              docker service ls
-              exit 1
-            }
+          docker stack deploy -c docker/stack.yml bbb-spd
