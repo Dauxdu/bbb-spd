@@ -2,21 +2,15 @@ name: Deploy Application
 
 on:
   workflow_call:
-    inputs:
-      docker_image_name:
-        description: "Name of the Docker image to deploy"
+    secrets:
+      SSH_USERNAME:
         required: true
-        type: string
-
-env:
-  DOCKER_IMAGE_NAME: ${{ inputs.docker_image_name }}
-  DOCKER_STACK: stack.yml
-  SSH_HOST: ${{ secrets.SSH_HOST }}
-  SSH_PORT: ${{ secrets.SSH_PORT }}
-  SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-  SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-  EMAIL: ${{ secrets.EMAIL }}
-  CF_DNS_API_TOKEN: ${{ secrets.CF_DNS_API_TOKEN }}
+      SSH_PRIVATE_KEY:
+        required: true
+      EMAIL:
+        required: true
+      CF_DNS_API_TOKEN:
+        required: true
 
 jobs:
   deploy:
@@ -29,45 +23,35 @@ jobs:
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ env.DOCKER_IMAGE_NAME }}
+          name: ${{ vars.DOCKER_IMAGE }}
           path: .
 
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ env.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_rsa
           chmod 600 ~/.ssh/deploy_rsa
 
       - name: Transfer Docker image
         run: |
-          scp -i ~/.ssh/deploy_rsa -P ${{ env.SSH_PORT }} -o StrictHostKeyChecking=no ${{ env.DOCKER_IMAGE_NAME }}.tar ${{ env.SSH_USERNAME }}@${{ env.SSH_HOST }}:/home/${{ env.SSH_USERNAME }}/
-          scp -i ~/.ssh/deploy_rsa -P ${{ env.SSH_PORT }} -o StrictHostKeyChecking=no ${{ env.DOCKER_STACK }} ${{ env.SSH_USERNAME }}@${{ env.SSH_HOST }}:/home/${{ env.SSH_USERNAME }}/
+          scp -i ~/.ssh/deploy_rsa -P ${{ vars.SSH_PORT }} -o StrictHostKeyChecking=no ${{ vars.DOCKER_IMAGE }}.tar ${{ secrets.SSH_USERNAME }}@${{ vars.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/
+          scp -i ~/.ssh/deploy_rsa -P ${{ vars.SSH_PORT }} -o StrictHostKeyChecking=no docker/stack.yml ${{ secrets.SSH_USERNAME }}@${{ vars.SSH_HOST }}:/home/${{ secrets.SSH_USERNAME }}/
 
       - name: Deploy application
         uses: appleboy/ssh-action@v1.2.2
         with:
-          host: ${{ env.SSH_HOST }}
-          port: ${{ env.SSH_PORT }}
-          username: ${{ env.SSH_USERNAME }}
-          key: ${{ env.SSH_PRIVATE_KEY }}
+          host: ${{ vars.SSH_HOST }}
+          port: ${{ vars.SSH_PORT }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -euo pipefail
 
             echo "::group::Loading Docker image"
-            docker load -i "${{ env.DOCKER_IMAGE_NAME }}.tar" || {
+            docker load -i "${{ vars.DOCKER_IMAGE }}.tar" || {
               echo "::error::Failed to load Docker image"
               exit 1
             }
-            echo "::endgroup::"
-
-            echo "::group::Swarm initialization"
-            SWARM_STATUS=$(docker info --format '{{.Swarm.LocalNodeState}}')
-            if [ "$SWARM_STATUS" != "active" ]; then
-              docker swarm init --advertise-addr 127.0.0.1 >/dev/null 2>&1 || {
-                echo "::error::Failed to initialize swarm"
-                exit 1
-              }
-            fi
             echo "::endgroup::"
 
             echo "::group::Removing old stack"
@@ -85,50 +69,9 @@ jobs:
             fi
             echo "::endgroup::"
 
-            echo "::group::Network setup"
-            if ! docker network inspect traefik-public >/dev/null 2>&1; then
-              docker network create traefik-public --driver overlay --attachable || {
-                echo "::error::Failed to create network"
-                exit 1
-              }
-            fi
-            echo "::endgroup::"
-
-            echo "::group::Secrets management"
-            update_secret() {
-              local SECRET_NAME=$1
-              local SECRET_VALUE=$2
-
-              if docker secret inspect "$SECRET_NAME" >/dev/null 2>&1; then
-                if ! docker secret rm "$SECRET_NAME" >/dev/null 2>&1; then
-                  echo "::warning::Failed to remove old secret, trying to continue..."
-                fi
-              fi
-
-              if ! echo "$SECRET_VALUE" | docker secret create "$SECRET_NAME" - >/dev/null 2>&1; then
-                echo "::error::Failed to create secret $SECRET_NAME, continue..."
-                return 1
-              fi
-            }
-
-            update_secret "EMAIL" "${{ env.EMAIL }}" || exit 1
-            update_secret "CF_DNS_API_TOKEN" "${{ env.CF_DNS_API_TOKEN }}" || exit 1
-            echo "::endgroup::"
-
             echo "::group::Stack deployment"
             docker stack deploy -c stack.yml prod || {
               echo "::error::Deployment failed"
               docker service ls
               exit 1
             }
-
-            if ! docker service scale prod_bbb-spd=5 >/dev/null 2>&1; then
-              echo "::warning::Scaling failed, current replicas:"
-              docker service inspect prod_bbb-spd --format '{{.Spec.Mode.Replicated.Replicas}}'
-            fi
-            echo "::endgroup::"
-
-            echo "::group::Cleanup"
-            rm -f "${{ env.DOCKER_IMAGE_NAME }}.tar"
-            docker system prune -f >/dev/null 2>&1 || true
-            echo "::endgroup::"

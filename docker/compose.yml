@@ -24,8 +24,6 @@ services:
   bbb-spd:
     build:
       context: .
-      args:
-        PORT: "3000"
     image: bbb-spd
     container_name: bbb-spd
     hostname: docker-bbb-spd

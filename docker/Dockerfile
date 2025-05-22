@@ -7,7 +7,8 @@ COPY package*.json ./
 
 RUN npm ci --only=production --cache .npm --prefer-offline
 
-COPY . .
+COPY public/ public/
+COPY server.js .
 
 # Stage 2: App
 FROM node:23-alpine AS app
