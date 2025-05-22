@@ -10,12 +10,12 @@ on:
 
 jobs:
   prod-build:
-    name: Build for Deploy
+    name: Build for Production
     if: ${{ github.ref == 'refs/heads/main' }}
     uses: ./.github/workflows/build.yml
 
   prod-deploy:
-    name: Deploy to Host
+    name: Deploy to Production
     needs: prod-build
     if: ${{ needs.prod-build.result == 'success' }}
     uses: ./.github/workflows/deploy.yml

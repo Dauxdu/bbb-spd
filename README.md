@@ -37,7 +37,7 @@ git clone https://github.com/dauxdu/bbb_spd.git
 3. Перейдите в папку с проектом и запустите командой:
 
 ```bash
-node service.js
+node server.js
 ```
 
 4. Перейдите в браузере по адресу: http://localhost:3000
@@ -54,7 +54,7 @@ git clone https://github.com/dauxdu/bbb_spd.git
 3. Перейдите в папку с проектом и соберите Docker-образ
 
 ```bash
-docker build -t bbb-spd .
+docker build -f docker/Dockerfile -t bbb-spd .
 ```
 
 4. Запустите контейнер
