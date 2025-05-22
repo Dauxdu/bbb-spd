@@ -49,9 +49,7 @@ jobs:
           docker context use remote
 
       - name: Deploy compose
-        env:
-          DATA_PATH: /home/${{ secrets.SSH_USERNAME }}
         run: |
-          docker load -i "${{ vars.DOCKER_IMAGE }}.tar" || {
+          docker load -i "${{ vars.DOCKER_IMAGE }}.tar"
 
           docker stack deploy -c docker/stack.yml bbb-spd
