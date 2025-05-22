@@ -18,55 +18,74 @@ services:
     networks:
       - traefik-public
     deploy:
+      replicas: 2
       restart_policy:
-        condition: on-failure
-      placement:
-        constraints:
-          - node.role == manager
+        condition: any
+        delay: 2s
+        max_attempts: 5
+      update_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 3s
+        order: start-first
     command:
       # Global settings
       - --global.checkNewVersion=false
       - --global.sendAnonymousUsage=false
       # API settings
       - --api.dashboard=false
+      - --api.debug=false
       - --api.insecure=false
       # Logging
       - --accesslog=true
-      - --log.level=ERROR
+      - --log.level=INFO
       # Providers
       - --providers.swarm=true
-      - --providers.swarm.exposedByDefault=false
       - --providers.swarm.endpoint=unix:///var/run/docker.sock
+      - --providers.swarm.exposedByDefault=false
+      - --providers.swarm.network=traefik-public
+      - --providers.swarm.httpClientTimeout=300
       # EntryPoints
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      # Middlewares
       - --entrypoints.web.http.redirections.entrypoint.permanent=true
+      - --entrypoints.websecure.address=:443
       # Certificates
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.le.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.le.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53
-      - --certificatesresolvers.le.acme.dnschallenge.delaybeforecheck=5
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.cloudflare.acme.dnsChallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnsChallenge.resolvers=1.1.1.1,8.8.8.8
+      - --certificatesresolvers.cloudflare.acme.dnsChallenge.delayBeforeCheck=5
 
   bbb-spd:
-    image: bbb-spd
+    image: inchange.dev/bbb-spd
     volumes:
       - bbb-spd:/app
     networks:
       - traefik-public
     deploy:
-      replicas: 5
-      update_config:
-        parallelism: 2
-        delay: 10s
+      replicas: 2
       restart_policy:
         condition: on-failure
+        delay: 5s
+        max_attempts: 5
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+        order: start-first
       labels:
         - traefik.enable=true
         - traefik.http.routers.bbb-spd.tls=true
-        - traefik.http.routers.bbb-spd.tls.certresolver=le
+        - traefik.http.routers.bbb-spd.tls.certresolver=cloudflare
         - traefik.http.routers.bbb-spd.rule=Host(`bbb.inchange.dev`)
         - traefik.http.routers.bbb-spd.entrypoints=websecure
         - traefik.http.services.bbb-spd.loadbalancer.server.port=3000
@@ -91,3 +110,5 @@ secrets:
 networks:
   traefik-public:
     external: true
+    driver: overlay
+    attachable: true

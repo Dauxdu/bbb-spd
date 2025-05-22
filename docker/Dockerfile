@@ -35,9 +35,6 @@ COPY --from=builder /build/server.js ./
 
 RUN chown -R bbbuser:bbbuser $HOME_FOLDER/app
 
-HEALTHCHECK CMD \
-    curl -f localhost:${PORT} || exit 1
-
 USER bbbuser
 
 EXPOSE ${PORT}
