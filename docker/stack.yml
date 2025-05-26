@@ -1,66 +1,4 @@
 services:
-  traefik:
-    image: traefik:v3
-    ports:
-      - target: 80
-        published: 80
-      - target: 443
-        published: 443
-    environment:
-      TRAEFIK_CERTIFICATESRESOLVERS_LE_ACME_EMAIL_FILE: /run/secrets/EMAIL
-      CF_DNS_API_TOKEN_FILE: /run/secrets/CF_DNS_API_TOKEN
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - letsencrypt:/letsencrypt
-    secrets:
-      - EMAIL
-      - CF_DNS_API_TOKEN
-    networks:
-      - traefik-public
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: any
-        delay: 2s
-        max_attempts: 5
-      update_config:
-        parallelism: 1
-        delay: 5s
-        order: start-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 3s
-        order: start-first
-    command:
-      # Global settings
-      - --global.checkNewVersion=false
-      - --global.sendAnonymousUsage=false
-      # API settings
-      - --api.dashboard=false
-      - --api.debug=false
-      - --api.insecure=false
-      # Logging
-      - --accesslog=true
-      - --log.level=INFO
-      # Providers
-      - --providers.swarm=true
-      - --providers.swarm.endpoint=unix:///var/run/docker.sock
-      - --providers.swarm.exposedByDefault=false
-      - --providers.swarm.network=traefik-public
-      - --providers.swarm.httpClientTimeout=300
-      # EntryPoints
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.web.http.redirections.entrypoint.permanent=true
-      - --entrypoints.websecure.address=:443
-      # Certificates
-      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
-      - --certificatesresolvers.cloudflare.acme.dnsChallenge.provider=cloudflare
-      - --certificatesresolvers.cloudflare.acme.dnsChallenge.resolvers=1.1.1.1,8.8.8.8
-      - --certificatesresolvers.cloudflare.acme.dnsChallenge.delayBeforeCheck=5
-
   bbb-spd:
     image: inchange.dev/bbb-spd
     volumes:
@@ -98,14 +36,6 @@ services:
 volumes:
   bbb-spd:
     driver: local
-  letsencrypt:
-    driver: local
-
-secrets:
-  EMAIL:
-    external: true
-  CF_DNS_API_TOKEN:
-    external: true
 
 networks:
   traefik-public:
