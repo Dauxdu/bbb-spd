@@ -7,9 +7,6 @@ COPY package*.json ./
 
 RUN npm ci --only=production --cache .npm --prefer-offline
 
-COPY public/ public/
-COPY server.js .
-
 # Stage 2: App
 FROM node:23-alpine AS app
 
@@ -29,9 +26,9 @@ RUN apk update && apk add --no-cache --virtual .build-deps \
     poppler-utils \
     && rm -rf /var/cache/apk/*
 
+COPY public/ public/
+COPY server.js .
 COPY --from=builder /build/node_modules ./node_modules
-COPY --from=builder /build/public ./public
-COPY --from=builder /build/server.js ./
 
 RUN chown -R bbbuser:bbbuser $HOME_FOLDER/app
 
