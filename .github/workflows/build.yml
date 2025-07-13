@@ -13,11 +13,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f docker/Dockerfile -t inchange.dev/${{ vars.DOCKER_IMAGE }}:latest .
+          docker build -f docker/Dockerfile -t inchange/${{ vars.DOCKER_IMAGE }}:latest .
 
       - name: Save Docker image
         run: |
-          docker save inchange.dev/${{ vars.DOCKER_IMAGE }}:latest -o ${{ vars.DOCKER_IMAGE }}.tar
+          docker save inchange${{ vars.DOCKER_IMAGE }}:latest -o ${{ vars.DOCKER_IMAGE }}.tar
 
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4

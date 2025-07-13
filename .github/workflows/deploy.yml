@@ -7,10 +7,6 @@ on:
         required: true
       SSH_PRIVATE_KEY:
         required: true
-      EMAIL:
-        required: true
-      CF_DNS_API_TOKEN:
-        required: true
 
   workflow_dispatch:
 
@@ -52,4 +48,4 @@ jobs:
         run: |
           docker load -i "${{ vars.DOCKER_IMAGE }}.tar"
 
-          docker stack deploy -c docker/stack.yml bbb-spd
+          docker stack deploy -c docker/bbb-spd-stack.yml bbb-spd

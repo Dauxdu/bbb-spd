@@ -22,5 +22,3 @@ jobs:
     secrets:
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
       SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-      EMAIL: ${{ secrets.EMAIL }}
-      CF_DNS_API_TOKEN: ${{ secrets.CF_DNS_API_TOKEN }}

@@ -3,14 +3,13 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: bbb-spd
+    image: inchange/bbb-spd
     container_name: bbb-spd
-    hostname: docker-bbb-spd
     ports:
       - 8080:3000/tcp
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
       interval: 10s
       timeout: 2s
       retries: 3

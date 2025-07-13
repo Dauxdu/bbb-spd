@@ -1,6 +1,6 @@
 services:
   bbb-spd:
-    image: inchange.dev/bbb-spd
+    image: inchange/bbb-spd
     volumes:
       - bbb-spd:/app
     networks:
