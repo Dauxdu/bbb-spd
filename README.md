@@ -31,7 +31,7 @@
 2. Клонируйте репозиторий:
 
 ```bash
-git clone https://github.com/dauxdu/bbb_spd.git
+git clone https://github.com/Dauxdu/bbb-spd.git
 ```
 
 3. Перейдите в папку с проектом и запустите командой:
@@ -48,7 +48,7 @@ node server.js
 2. Клонируйте репозиторий:
 
 ```bash
-git clone https://github.com/dauxdu/bbb_spd.git
+git clone https://github.com/Dauxdu/bbb-spd.git
 ```
 
 3. Перейдите в папку с проектом и соберите Docker-образ
@@ -72,7 +72,7 @@ docker run -d -p 3000:3000/tcp --name bbb-spd bbb-spd
 2. Клонируйте репозиторий:
 
 ```bash
-git clone https://github.com/dauxdu/bbb_spd.git
+git clone https://github.com/Dauxdu/bbb-spd.git
 ```
 
 3. Создайте сеть
