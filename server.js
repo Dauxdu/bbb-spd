@@ -111,12 +111,27 @@ app.post("/download", async (req, res) => {
     let index = startIndex
     const pdfBuffers = []
 
-    baseUrl = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1)
-    if (!baseUrl.endsWith("/")) baseUrl += "/"
-    if (!baseUrl.includes("/svg/")) baseUrl += "svg/"
+    // Определение формата ссылки
+    let slideFormat = "numeric"
+    let basePath = ""
+
+    if (baseUrl.includes("/svgs/")) {
+      slideFormat = "slide"
+      const svgsIndex = baseUrl.indexOf("/svgs/")
+      basePath = baseUrl.substring(0, svgsIndex + 6)
+    } else {
+      basePath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1)
+      if (!basePath.endsWith("/")) basePath += "/"
+      if (!basePath.includes("/svg/")) basePath += "svg/"
+    }
 
     while (endIndex === -1 || index <= endIndex) {
-      const svgUrl = `${baseUrl}${index}`
+      let svgUrl
+      if (slideFormat === "slide") {
+        svgUrl = `${basePath}slide${index}.svg`
+      } else {
+        svgUrl = `${basePath}${index}`
+      }
 
       try {
         console.log(`Downloading slide ${index} from ${svgUrl}`)

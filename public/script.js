@@ -39,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   downloadForm.addEventListener("submit", async (event) => {
     event.preventDefault()
 
-    const presentationLink = document.getElementById("presentationLink").value
+    let presentationLink = document.getElementById("presentationLink").value
     const fileName = document.getElementById("fileName").value
     let startSlide = 1
     let endSlide = -1
@@ -47,6 +47,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!allSlidesCheckbox.checked) {
       startSlide = parseInt(startSlideInput.value) || 1
       endSlide = parseInt(endSlideInput.value) || -1
+    }
+
+    // Определение формата ссылки
+    if (presentationLink.includes("/svgs/slide")) {
+      const slideMatch = presentationLink.match(/slide(\d+)\.svg/)
+      if (slideMatch) {
+        const slideNum = parseInt(slideMatch[1])
+        if (startSlide === 1 && !allSlidesCheckbox.checked) {
+          startSlide = slideNum
+        }
+        presentationLink = presentationLink.substring(
+          0,
+          presentationLink.indexOf("/svgs/") + 6
+        )
+      }
     }
 
     // Валидация
@@ -80,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${fileName}.pdf`
+      a.download = `${fileName || "presentation"}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)

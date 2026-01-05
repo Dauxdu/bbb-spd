@@ -37,6 +37,7 @@ git clone https://github.com/Dauxdu/bbb-spd.git
 3. Перейдите в папку с проектом и запустите командой:
 
 ```bash
+npm i
 node server.js
 ```
 
