@@ -28,8 +28,8 @@ const httpGet = (url) => {
           response.resume()
           reject(
             new Error(
-              `HTTP GET request failed with status code ${response.statusCode}`
-            )
+              `HTTP GET request failed with status code ${response.statusCode}`,
+            ),
           )
           return
         }
@@ -39,8 +39,8 @@ const httpGet = (url) => {
       })
       .on("error", (err) =>
         reject(
-          new Error(`Error during HTTP GET request for ${url}: ${err.message}`)
-        )
+          new Error(`Error during HTTP GET request for ${url}: ${err.message}`),
+        ),
       )
   })
 }
@@ -53,18 +53,18 @@ const convertSvgToPdf = (svgBuffer) => {
 
     childProcess.stdout.on(
       "data",
-      (chunk) => (pdfBuffer = Buffer.concat([pdfBuffer, chunk]))
+      (chunk) => (pdfBuffer = Buffer.concat([pdfBuffer, chunk])),
     )
     childProcess.stderr.on(
       "data",
-      (chunk) => (errorBuffer = Buffer.concat([errorBuffer, chunk]))
+      (chunk) => (errorBuffer = Buffer.concat([errorBuffer, chunk])),
     )
     childProcess.on("close", (code) =>
       code !== 0
         ? reject(
-            new Error(`Error converting SVG to PDF: ${errorBuffer.toString()}`)
+            new Error(`Error converting SVG to PDF: ${errorBuffer.toString()}`),
           )
-        : resolve(pdfBuffer)
+        : resolve(pdfBuffer),
     )
 
     childProcess.stdin.write(svgBuffer)
@@ -86,7 +86,7 @@ const mergePdfs = (pdfBuffers) => {
 
     childProcess.stderr.on(
       "data",
-      (chunk) => (errorBuffer = Buffer.concat([errorBuffer, chunk]))
+      (chunk) => (errorBuffer = Buffer.concat([errorBuffer, chunk])),
     )
     childProcess.on("close", (code) => {
       inputFiles.forEach((file) => fs.unlinkSync(file))
@@ -104,7 +104,7 @@ app.post("/download", async (req, res) => {
   if (!baseUrl) return handleError(res, "Missing URL parameter", 400)
 
   console.log(
-    `Download request received for URL: ${baseUrl}, Start: ${startIndex}, End: ${endIndex}`
+    `Download request received for URL: ${baseUrl}, Start: ${startIndex}, End: ${endIndex}`,
   )
 
   try {
@@ -154,7 +154,7 @@ app.post("/download", async (req, res) => {
       return handleError(
         res,
         "No slides were successfully downloaded and converted.",
-        404
+        404,
       )
 
     const mergedPdf = await mergePdfs(pdfBuffers)
@@ -162,7 +162,7 @@ app.post("/download", async (req, res) => {
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="${outputFileName}"`
+      `attachment; filename="${outputFileName}"`,
     )
     res.setHeader("Content-Type", "application/pdf")
     res.send(mergedPdf)

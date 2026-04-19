@@ -13,7 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
     body.classList.toggle("dark-theme")
     localStorage.setItem(
       "theme",
-      body.classList.contains("dark-theme") ? "dark" : "light"
+      body.classList.contains("dark-theme") ? "dark" : "light",
     )
   }
 
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         presentationLink = presentationLink.substring(
           0,
-          presentationLink.indexOf("/svgs/") + 6
+          presentationLink.indexOf("/svgs/") + 6,
         )
       }
     }
