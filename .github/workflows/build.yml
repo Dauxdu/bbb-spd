@@ -1,23 +1,42 @@
-name: Build Docker Image
-
+name: Build & Scan Docker Image
 on:
   workflow_call:
 
 jobs:
-  build:
-    runs-on: [ubuntu-latest]
-
+  build-and-scan:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Scan filesystem with Trivy
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: docker/Dockerfile
+          failure-threshold: warning
+
       - name: Build Docker image
-        run: |
-          docker build -f docker/Dockerfile -t inchange/${{ vars.DOCKER_IMAGE }}:latest .
+        run: docker build -f docker/Dockerfile -t inchange/${{ vars.DOCKER_IMAGE }}:latest .
+
+      - name: Scan Docker image
+        uses: aquasecurity/trivy-action@v0.35.0
+        with:
+          image-ref: inchange/${{ vars.DOCKER_IMAGE }}:latest
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
 
       - name: Save Docker image
-        run: |
-          docker save inchange/${{ vars.DOCKER_IMAGE }}:latest -o ${{ vars.DOCKER_IMAGE }}.tar
+        run: docker save inchange/${{ vars.DOCKER_IMAGE }}:latest -o ${{ vars.DOCKER_IMAGE }}.tar
 
       - name: Upload Docker image as artifact
         uses: actions/upload-artifact@v4
