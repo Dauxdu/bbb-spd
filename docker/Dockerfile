@@ -19,8 +19,8 @@ RUN addgroup -S bbbuser && adduser -S bbbuser -G bbbuser
 WORKDIR $HOME_FOLDER/app
 
 RUN apk update && apk add --no-cache \
-    curl=8.19.0-r0 \
-    rsvg-convert=2.56.3-r0 \
+    curl=8.17.0-r1 \
+    rsvg-convert=2.61.2-r0 \
     poppler-utils=25.12.0-r0
 
 COPY public/ public/
