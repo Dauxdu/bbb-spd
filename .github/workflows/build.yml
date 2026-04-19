@@ -27,6 +27,7 @@ jobs:
               --sarif \
               --output /src/semgrep.sarif \
               --error \
+              --verbose \
               /src
 
       - name: Upload Semgrep SARIF to GitHub
