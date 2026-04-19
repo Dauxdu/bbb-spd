@@ -1,8 +1,6 @@
 name: Build & Scan Docker Image
-
 on:
   workflow_call:
-
   workflow_dispatch:
 
 jobs:
@@ -19,18 +17,17 @@ jobs:
           fetch-depth: 0
 
       - name: Run Semgrep SAST Scan
-        uses: docker://semgrep/semgrep:latest
-        with:
-          entrypoint: /usr/bin/semgrep
-          args: >
-            scan
-            --config auto
-            --config p/security-audit
-            --sarif
-            --output semgrep.sarif
-            --error
-            --quiet
-            .
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            semgrep/semgrep:1.160.0 \
+            semgrep scan \
+              --config auto \
+              --config p/security-audit \
+              --sarif \
+              --output /src/semgrep.sarif \
+              --error \
+              /src
 
       - name: Upload Semgrep SARIF to GitHub
         uses: github/codeql-action/upload-sarif@v4
