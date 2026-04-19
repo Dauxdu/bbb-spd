@@ -5,19 +5,21 @@ on:
     branches: [main]
     paths:
       - "public/**"
-      - "**.yml"
-      - "**.js"
+      - "docker/**"
+      - "server.js"
+      - "*.json"
+      - "*.yml"
+      - "*.js"
 
 jobs:
-  prod-build:
-    name: Build for Production
-    if: ${{ github.ref == 'refs/heads/main' }}
+  build:
+    name: Build & Security Scan
     uses: ./.github/workflows/build.yml
 
-  prod-deploy:
+  deploy:
     name: Deploy to Production
-    needs: prod-build
-    if: ${{ needs.prod-build.result == 'success' }}
+    needs: build
+    if: ${{ needs.build.result == 'success' }}
     uses: ./.github/workflows/deploy.yml
     secrets:
       SSH_USERNAME: ${{ secrets.SSH_USERNAME }}

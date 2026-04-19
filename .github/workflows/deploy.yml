@@ -13,7 +13,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,9 +23,9 @@ jobs:
           name: ${{ vars.DOCKER_IMAGE }}
           path: .
 
-      - name: Set up SSH
+      - name: Setup SSH
         run: |
-          mkdir -p ~/.ssh/
+          mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_rsa
           chmod 600 ~/.ssh/deploy_rsa
 
@@ -39,13 +38,11 @@ jobs:
             StrictHostKeyChecking no
           END
 
-      - name: Create remote Docker context
+      - name: Deploy compose stack
         run: |
           docker context create remote --docker "host=ssh://deploy"
           docker context use remote
 
-      - name: Deploy compose
-        run: |
           docker load -i "${{ vars.DOCKER_IMAGE }}.tar"
 
           docker stack deploy -c docker/bbb-spd-stack.yml bbb-spd
