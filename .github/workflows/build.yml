@@ -41,7 +41,7 @@ jobs:
         run: docker save inchange/${{ vars.DOCKER_IMAGE }}:latest -o ${{ vars.DOCKER_IMAGE }}.tar
 
       - name: Upload Docker image as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ vars.DOCKER_IMAGE }}
           path: ${{ vars.DOCKER_IMAGE }}.tar
