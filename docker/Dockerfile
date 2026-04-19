@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:24-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /build
 
@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 # Stage 2: App
-FROM node:24-alpine AS app
+FROM node:25-alpine AS app
 
 ARG PORT=3000
 
