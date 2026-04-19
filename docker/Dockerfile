@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:23-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /build
 
@@ -8,7 +8,7 @@ COPY package*.json ./
 RUN npm ci --only=production --cache .npm --prefer-offline
 
 # Stage 2: App
-FROM node:23-alpine AS app
+FROM node:24-alpine AS app
 
 ARG PORT=3000
 
