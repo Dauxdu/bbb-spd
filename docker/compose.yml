@@ -8,6 +8,8 @@ services:
     ports:
       - 3000:3000/tcp
     restart: unless-stopped
+    tmpfs:
+      - /tmp
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
       interval: 10s

@@ -1,8 +1,8 @@
 services:
   bbb-spd:
     image: inchange/bbb-spd
-    volumes:
-      - bbb-spd:/app
+    tmpfs:
+      - /tmp
     networks:
       - traefik-public
     deploy:
@@ -32,10 +32,6 @@ services:
       interval: 10s
       timeout: 2s
       retries: 3
-
-volumes:
-  bbb-spd:
-    driver: local
 
 networks:
   traefik-public:

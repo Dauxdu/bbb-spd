@@ -45,4 +45,4 @@ jobs:
 
           docker load -i "${{ vars.DOCKER_IMAGE }}.tar"
 
-          docker stack deploy -c docker/bbb-spd-stack.yml bbb-spd
+          docker stack deploy -c docker/stack.yml bbb-spd
