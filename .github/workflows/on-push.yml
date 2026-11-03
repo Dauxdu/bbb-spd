@@ -15,12 +15,3 @@ jobs:
   build:
     name: Build & Security Scan
     uses: ./.github/workflows/build.yml
-
-  deploy:
-    name: Deploy to Production
-    needs: build
-    if: ${{ needs.build.result == 'success' }}
-    uses: ./.github/workflows/deploy.yml
-    secrets:
-      SSH_USERNAME: ${{ secrets.SSH_USERNAME }}
-      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
