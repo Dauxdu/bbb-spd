@@ -10,6 +10,11 @@ services:
     restart: unless-stopped
     tmpfs:
       - /tmp
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
       interval: 10s
