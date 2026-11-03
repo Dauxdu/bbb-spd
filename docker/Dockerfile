@@ -4,10 +4,10 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOME_FOLDER=/home/bbbuser
 
-RUN addgroup -S bbbuser \
-    && adduser -S bbbuser -G bbbuser \
+RUN addgroup -S -g 10001 bbbuser \
+    && adduser -S -u 10001 -G bbbuser bbbuser \
     && mkdir -p "${HOME_FOLDER}/app" \
-    && chown -R bbbuser:bbbuser "${HOME_FOLDER}"
+    && chown -R 10001:10001 "${HOME_FOLDER}"
 
 WORKDIR $HOME_FOLDER/app
 
@@ -16,18 +16,18 @@ RUN apk add --no-cache \
     "rsvg-convert=2.62.3-r0" \
     "poppler-utils=25.12.0-r1"
 
-COPY --chown=bbbuser:bbbuser package*.json ./
+COPY --chown=10001:10001 package*.json ./
 
-USER bbbuser
+USER 10001:10001
 
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY --chown=bbbuser:bbbuser public/ public/
-COPY --chown=bbbuser:bbbuser server.js ./
+COPY --chown=10001:10001 public/ public/
+COPY --chown=10001:10001 server.js ./
 
 EXPOSE ${PORT}
 
 HEALTHCHECK --interval=10s --timeout=2s --start-period=5s --retries=3 \
-    CMD curl -f "http://localhost:${PORT}/" || exit 1
+    CMD ["/bin/sh", "-c", "curl -f \"http://localhost:${PORT}/\" || exit 1"]
 
 CMD ["node", "server.js"]
