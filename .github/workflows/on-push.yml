@@ -25,6 +25,7 @@ on:
       - "*.json"
       - "*.yml"
       - "*.js"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -32,15 +33,36 @@ concurrency:
 
 jobs:
   lint:
-    name: ESLint
-    uses: ./.github/workflows/lint.yml
+    name: "Stage 1-2: Lint & SAST"
+    uses: ./.github/workflows/01-lint.yml
+    permissions:
+      contents: read
+      security-events: write
+
+  secrets:
+    name: "Stage 3: Secret Scan"
+    uses: ./.github/workflows/02-secrets.yml
     permissions:
       contents: read
 
+  dependencies:
+    name: "Stage 4: Dependency Scan"
+    uses: ./.github/workflows/03-dependencies.yml
+    permissions:
+      contents: read
+      security-events: write
+
   build:
-    name: Build & Security Scan
-    needs: lint
-    uses: ./.github/workflows/build.yml
+    name: "Stage 6: Build & Attestations"
+    needs: [lint, secrets, dependencies]
+    uses: ./.github/workflows/04-build.yml
+    permissions:
+      contents: read
+
+  scan-image:
+    name: "Stage 7: Scan Image"
+    needs: build
+    uses: ./.github/workflows/05-scan-image.yml
     permissions:
       contents: read
       security-events: write

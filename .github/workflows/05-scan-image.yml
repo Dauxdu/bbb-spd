@@ -1,0 +1,53 @@
+name: "Stage 5: Scan Image"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trivy-image:
+    name: Trivy image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: image-${{ github.sha }}
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Scan Docker image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "inchange/${{ vars.DOCKER_IMAGE }}:${{ github.sha }}"
+          format: "table"
+          exit-code: "1"
+          severity: "CRITICAL,HIGH"
+
+      - name: Export Trivy image scan to SARIF
+        id: trivy_image_sarif
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: "inchange/${{ vars.DOCKER_IMAGE }}:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-image.sarif"
+          severity: "CRITICAL,HIGH"
+
+      - name: Upload Trivy image SARIF to GitHub
+        if: always() && steps.trivy_image_sarif.outcome == 'success'
+        uses: github/codeql-action/upload-sarif@1fc58d04a4d4374f921bdac573c3811c240f9c26 # v4.39.2
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image

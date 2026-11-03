@@ -1,0 +1,96 @@
+name: "Stage 6: Build Image & Attestations"
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Buildx with SBOM & provenance
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Buildx builder
+        run: docker buildx create --name ci-builder --driver docker-container --bootstrap --use
+
+      - name: Build image with SBOM and provenance attestations
+        run: |
+          docker buildx build \
+            --provenance=mode=max \
+            --sbom=true \
+            -f docker/Dockerfile \
+            -t "inchange/${{ vars.DOCKER_IMAGE }}:${{ github.sha }}" \
+            -o type=oci,dest=image.tar \
+            .
+
+      - name: Extract attestations
+        run: |
+          python3 - <<'PY'
+          import json, sys, tarfile
+
+          tf = tarfile.open("image.tar")
+          found = {}
+
+          def read_blob(digest):
+              return json.load(tf.extractfile(f"blobs/sha256/{digest.split(':')[1]}"))
+
+          def walk(digest):
+              manifest = read_blob(digest)
+              if "manifests" in manifest:
+                  for child in manifest["manifests"]:
+                      walk(child["digest"])
+                  return
+              is_attestation = "attestation" in (manifest.get("artifactType") or "") and "subject" in manifest
+              if not is_attestation:
+                  return
+              for layer in manifest["layers"]:
+                  if layer["mediaType"] != "application/vnd.in-toto+json":
+                      continue
+                  statement = read_blob(layer["digest"])
+                  ptype = statement.get("predicateType", "")
+                  if "provenance" in ptype:
+                      found["provenance.json"] = statement
+                  elif "spdx" in ptype or "cyclonedx" in ptype:
+                      found["sbom.spdx.json"] = statement
+
+          index = json.load(tf.extractfile("index.json"))
+          for entry in index["manifests"]:
+              walk(entry["digest"])
+
+          for name, statement in found.items():
+              with open(name, "w") as f:
+                  json.dump(statement, f, indent=2)
+              print(f"extracted {name}")
+
+          missing = [n for n in ("provenance.json", "sbom.spdx.json") if n not in found]
+          if missing:
+              print(f"ERROR: attestations not found: {missing}")
+              sys.exit(1)
+          PY
+
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: image-${{ github.sha }}
+          path: image.tar
+          retention-days: 1
+
+      - name: Upload provenance as artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: provenance-${{ github.sha }}
+          path: provenance.json
+          retention-days: 7
+
+      - name: Upload SBOM as artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: sbom-${{ github.sha }}
+          path: sbom.spdx.json
+          retention-days: 7
