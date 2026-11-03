@@ -64,6 +64,7 @@ jobs:
               --config p/security-audit \
               --config p/dockerfile \
               --config p/secrets \
+              --exclude "*.sarif" \
               --sarif \
               --output /src/semgrep.sarif \
               --verbose \
@@ -79,6 +80,7 @@ jobs:
               --config p/security-audit \
               --config p/dockerfile \
               --config p/secrets \
+              --exclude "*.sarif" \
               --severity ERROR \
               --error \
               /src
