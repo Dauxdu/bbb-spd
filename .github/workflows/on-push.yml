@@ -6,10 +6,29 @@ on:
     paths:
       - "public/**"
       - "docker/**"
+      - ".github/**"
+      - ".trivyignore"
+      - ".dockerignore"
       - "server.js"
       - "*.json"
       - "*.yml"
       - "*.js"
+  pull_request:
+    branches: [main]
+    paths:
+      - "public/**"
+      - "docker/**"
+      - ".github/**"
+      - ".trivyignore"
+      - ".dockerignore"
+      - "server.js"
+      - "*.json"
+      - "*.yml"
+      - "*.js"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint:
