@@ -1,4 +1,4 @@
-name: "Stage 5: Scan Image"
+name: "Stage 7: Scan Image"
 
 on:
   workflow_call:
@@ -24,26 +24,40 @@ jobs:
         with:
           name: image-${{ github.sha }}
 
-      - name: Load Docker image
-        run: docker load -i image.tar
+      - name: Unpack OCI image layout
+        run: |
+          mkdir -p image-oci
+          tar -xf image.tar -C image-oci
 
-      - name: Scan Docker image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: "inchange/${{ vars.DOCKER_IMAGE }}:${{ github.sha }}"
-          format: "table"
-          exit-code: "1"
-          severity: "CRITICAL,HIGH"
+      - name: Scan image with Trivy
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -v trivy-cache:/root/.cache \
+            aquasec/trivy:0.70.0 \
+            image \
+            --input /src/image-oci \
+            --ignorefile /src/.trivyignore \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --format table \
+            --skip-version-check
 
       - name: Export Trivy image scan to SARIF
         id: trivy_image_sarif
         if: always()
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: "inchange/${{ vars.DOCKER_IMAGE }}:${{ github.sha }}"
-          format: "sarif"
-          output: "trivy-image.sarif"
-          severity: "CRITICAL,HIGH"
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -v trivy-cache:/root/.cache \
+            aquasec/trivy:0.70.0 \
+            image \
+            --input /src/image-oci \
+            --ignorefile /src/.trivyignore \
+            --severity CRITICAL,HIGH \
+            --format sarif \
+            --output /src/trivy-image.sarif \
+            --skip-version-check
 
       - name: Upload Trivy image SARIF to GitHub
         if: always() && steps.trivy_image_sarif.outcome == 'success'
