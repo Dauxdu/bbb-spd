@@ -24,3 +24,9 @@ node_modules
 **/config/secrets/
 **/private/
 **/config/private/
+*.log
+**/*.log
+*.sarif
+*.tar
+.env.*
+**/.env.*
