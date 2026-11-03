@@ -34,8 +34,13 @@ jobs:
   lint:
     name: ESLint
     uses: ./.github/workflows/lint.yml
+    permissions:
+      contents: read
 
   build:
     name: Build & Security Scan
     needs: lint
     uses: ./.github/workflows/build.yml
+    permissions:
+      contents: read
+      security-events: write
