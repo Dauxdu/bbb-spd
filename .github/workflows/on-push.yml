@@ -12,6 +12,11 @@ on:
       - "*.js"
 
 jobs:
+  lint:
+    name: ESLint
+    uses: ./.github/workflows/lint.yml
+
   build:
     name: Build & Security Scan
+    needs: lint
     uses: ./.github/workflows/build.yml
